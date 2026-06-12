@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 # Timeout for requests
 req_timeout = 30
+_PRESERVED_UI_FILES = {".gitkeep", "fallback_file.html", "zh-cn-localizer.js"}
 
 
 def clean_ui_subdir(directory: Path):
@@ -17,12 +18,16 @@ def clean_ui_subdir(directory: Path):
         logger.info("Removing UI directory content.")
 
         for p in reversed(list(directory.glob("**/*"))):  # iterate contents from leaves to root
-            if p.name in (".gitkeep", "fallback_file.html"):
+            if p.name in _PRESERVED_UI_FILES:
                 continue
             if p.is_file():
                 p.unlink()
             elif p.is_dir():
-                p.rmdir()
+                try:
+                    p.rmdir()
+                except OSError:
+                    # The assets directory may still contain the preserved zh-CN localizer.
+                    pass
 
 
 def read_ui_version(dest_folder: Path) -> str | None:

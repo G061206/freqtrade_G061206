@@ -174,6 +174,13 @@ def test_api_ui_fallback(botclient, mocker):
     # Forwarded to fallback_html or index.html (depending if it's installed or not)
     rc = client_get(client, "/something")
     assert rc.status_code == 200
+    assert "zh-cn-localizer.js" in rc.text
+    assert 'lang="zh-CN"' in rc.text
+
+    rc = client_get(client, "/index.html")
+    assert rc.status_code == 200
+    assert "zh-cn-localizer.js" in rc.text
+    assert 'lang="zh-CN"' in rc.text
 
     rc = client_get(client, "/something.js")
     assert rc.status_code == 200

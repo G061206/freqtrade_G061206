@@ -784,6 +784,20 @@ def test_clean_ui_subdir(mocker, tmp_path, caplog):
     assert ul_mock.call_count == 1
 
 
+def test_clean_ui_subdir_preserves_zh_localizer(tmp_path):
+    folder = tmp_path / "uitests"
+    assets = folder / "assets"
+    assets.mkdir(parents=True)
+    (folder / "index.html").write_text("<html></html>")
+    localizer = assets / "zh-cn-localizer.js"
+    localizer.write_text("console.log('zh-cn');")
+
+    clean_ui_subdir(folder)
+
+    assert localizer.is_file()
+    assert not (folder / "index.html").exists()
+
+
 def test_download_and_install_ui(mocker, tmp_path):
     # Create zipfile
     requests_mock = MagicMock()
