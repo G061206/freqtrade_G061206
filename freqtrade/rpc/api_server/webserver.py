@@ -22,72 +22,79 @@ from freqtrade.rpc.rpc_types import RPCSendMsg
 logger = logging.getLogger(__name__)
 
 
-_TRADE_MODE_ONLY = "*only available in trading mode*"
-_WEBSERVER_MODE_ONLY = "*only available in webserver mode*"
+_TRADE_MODE_ONLY = "*仅交易模式可用*"
+_WEBSERVER_MODE_ONLY = "*仅 Webserver 模式可用*"
 
 _OPENAPI_TAGS = [
-    {"name": "Auth", "description": "Authentication endpoints."},
+    {"name": "Auth", "description": "认证相关接口。"},
     {
         "name": "Info",
-        "description": ("Information endpoints providing general information about the bot."),
+        "description": "机器人基础信息接口。",
     },
     {
         "name": "Bot-control",
-        "description": (f"Bot control endpoints to start/stop trading - {_TRADE_MODE_ONLY}."),
+        "description": f"机器人控制接口，可启动、停止或暂停交易 - {_TRADE_MODE_ONLY}。",
     },
     {
         "name": "Pairlist",
-        "description": f"Pairlist management - {_TRADE_MODE_ONLY}.",
+        "description": f"交易对列表管理 - {_TRADE_MODE_ONLY}。",
     },
     {
         "name": "Locks",
-        "description": f"Pair lock management - {_TRADE_MODE_ONLY}.",
+        "description": f"交易对锁定管理 - {_TRADE_MODE_ONLY}。",
     },
     {
         "name": "Candle data",
-        "description": "Candle / OHLCV data.",
+        "description": "K 线 / OHLCV 数据。",
     },
     {
         "name": "Trading-info",
-        "description": f"Trading related information - {_TRADE_MODE_ONLY}.",
+        "description": f"交易相关信息 - {_TRADE_MODE_ONLY}。",
     },
     {
         "name": "Trades",
-        "description": f"Trade management - {_TRADE_MODE_ONLY}.",
+        "description": f"交易记录与订单管理 - {_TRADE_MODE_ONLY}。",
     },
     {
         "name": "Strategy",
-        "description": f"List and retrieve strategies - {_WEBSERVER_MODE_ONLY}.",
+        "description": f"策略列表与策略详情 - {_WEBSERVER_MODE_ONLY}。",
     },
     {
         "name": "Hyperopt",
-        "description": f"Retrieve hyperopt loss functions - {_WEBSERVER_MODE_ONLY}.",
+        "description": f"Hyperopt 损失函数查询 - {_WEBSERVER_MODE_ONLY}。",
     },
     {
         "name": "FreqAI",
-        "description": f"FreqAI related endpoints - {_WEBSERVER_MODE_ONLY}.",
+        "description": f"FreqAI 相关接口 - {_WEBSERVER_MODE_ONLY}。",
     },
     {
         "name": "Download-data",
-        "description": f"Download data endpoints - {_WEBSERVER_MODE_ONLY}.",
+        "description": f"历史数据下载接口 - {_WEBSERVER_MODE_ONLY}。",
     },
     {
         "name": "Backtest",
-        "description": f"Backtest endpoints - {_WEBSERVER_MODE_ONLY}.",
+        "description": f"回测相关接口 - {_WEBSERVER_MODE_ONLY}。",
     },
     {
         "name": "Pairlists",
-        "description": f"Pairlist endpoints - {_WEBSERVER_MODE_ONLY}.",
+        "description": f"交易对列表评估接口 - {_WEBSERVER_MODE_ONLY}。",
     },
     {
         "name": "Trading",
-        "description": f"Trading related endpoints - {_TRADE_MODE_ONLY}.",
+        "description": f"交易执行相关接口 - {_TRADE_MODE_ONLY}。",
     },
     {
         "name": "Webserver",
-        "description": (f"Webserver related endpoints - {_WEBSERVER_MODE_ONLY}."),
+        "description": f"Webserver 相关接口 - {_WEBSERVER_MODE_ONLY}。",
     },
 ]
+
+_INSECURE_JWT_SECRET_KEYS = {
+    "",
+    "super-secret",
+    "somethingrandom",
+    "somethingRandomSomethingRandom123",
+}
 
 
 class FTJSONResponse(JSONResponse):
@@ -146,7 +153,7 @@ class ApiServer(RPCHandler):
         api_config = self._config["api_server"]
 
         self.app = FastAPI(
-            title="Freqtrade API",
+            title="Freqtrade API（简体中文）",
             docs_url="/docs" if api_config.get("enable_openapi", False) else None,
             redoc_url=None,
             default_response_class=FTJSONResponse,
@@ -298,14 +305,11 @@ class ApiServer(RPCHandler):
                 "Please make sure that this is intentional!"
             )
 
-        if self._config["api_server"].get("jwt_secret_key", "super-secret") in (
-            "super-secret",
-            "somethingrandom",
-            "somethingRandomSomethingRandom123",
-        ):
-            logger.warning(
-                "SECURITY WARNING - `jwt_secret_key` seems to be default."
-                "Others may be able to log into your bot."
+        jwt_secret_key = self._config["api_server"].get("jwt_secret_key", "")
+        if jwt_secret_key in _INSECURE_JWT_SECRET_KEYS:
+            raise OperationalException(
+                "Refusing to start API server with a default or empty `jwt_secret_key`. "
+                "Please set `api_server.jwt_secret_key` to a strong, unique random value."
             )
 
         logger.info("Starting Local Rest Server.")

@@ -1,31 +1,594 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Freqtrade UI</title>
+  <title>Freqtrade 简体中文控制台</title>
   <style>
-    body {
-      background-color: #3c3c3c;
-      color: #dedede;
-      text-align: center;
+    :root {
+      color-scheme: dark;
+      --bg: #101418;
+      --panel: #171d23;
+      --panel-soft: #1d252d;
+      --border: #2b3640;
+      --text: #eef3f7;
+      --muted: #9ba8b4;
+      --accent: #4fb3ff;
+      --accent-strong: #1494ef;
+      --danger: #ff6b6b;
+      --ok: #55d68b;
     }
-    .main-container {
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family:
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "Microsoft YaHei",
+        sans-serif;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0;
+    }
+
+    .topbar {
       display: flex;
       align-items: center;
-      justify-content: center;
-      flex-direction: column;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 24px;
     }
+
     h1 {
-      margin-top: 10rem;
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--panel);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--danger);
+    }
+
+    .dot.ok {
+      background: var(--ok);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) 1fr;
+      gap: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 18px;
+    }
+
+    .panel h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--panel-soft);
+      color: var(--text);
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    button,
+    .link-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 38px;
+      padding: 9px 13px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--panel-soft);
+      color: var(--text);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    button.primary {
+      border-color: var(--accent-strong);
+      background: var(--accent-strong);
+      color: #fff;
+    }
+
+    button.danger {
+      border-color: #9d3f3f;
+      color: #ffd4d4;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .metric {
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      min-width: 0;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 20px;
+    }
+
+    .notice {
+      margin-top: 16px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #14202a;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 640px;
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .error {
+      color: var(--danger);
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 820px) {
+      .topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .grid,
+      .cards {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="main-container">
-    <h1>Freqtrade UI not installed.</h1>
-    <p>Please run `freqtrade install-ui` in your terminal to install the UI files and restart your bot.</p>
-    <p>You can then refresh this page and you should see the UI.</p>
-  </div>
+  <main class="app">
+    <header class="topbar">
+      <div>
+        <h1>Freqtrade 简体中文控制台</h1>
+        <p class="subtitle">内置轻量界面。安装完整 FreqUI 后会自动显示官方界面。</p>
+      </div>
+      <div class="status-pill" aria-live="polite">
+        <span id="health-dot" class="dot"></span>
+        <span id="health-text">未连接</span>
+      </div>
+    </header>
+
+    <section class="grid">
+      <aside class="panel">
+        <h2>登录</h2>
+        <form id="login-form">
+          <label for="username">用户名</label>
+          <input id="username" autocomplete="username" required>
+          <label for="password">密码</label>
+          <input id="password" type="password" autocomplete="current-password" required>
+          <div class="actions">
+            <button class="primary" type="submit">登录</button>
+            <button type="button" id="logout-button">退出</button>
+          </div>
+        </form>
+
+        <div class="notice">
+          <strong>提示：</strong>如需完整图表、回测和高级配置界面，请在终端运行
+          <code>freqtrade install-ui</code>，然后重启机器人。
+        </div>
+
+        <div class="actions">
+          <a class="link-button" href="/docs">打开 API 文档</a>
+          <button type="button" id="refresh-button">刷新数据</button>
+        </div>
+
+        <p id="message" class="muted" aria-live="polite"></p>
+      </aside>
+
+      <section class="panel">
+        <h2>运行概览</h2>
+        <div class="cards">
+          <div class="metric">
+            <span>机器人状态</span>
+            <strong id="bot-state">--</strong>
+          </div>
+          <div class="metric">
+            <span>策略</span>
+            <strong id="strategy">--</strong>
+          </div>
+          <div class="metric">
+            <span>当前版本</span>
+            <strong id="version">--</strong>
+          </div>
+          <div class="metric">
+            <span>总收益</span>
+            <strong id="profit">--</strong>
+          </div>
+          <div class="metric">
+            <span>打开交易</span>
+            <strong id="open-count">--</strong>
+          </div>
+          <div class="metric">
+            <span>权益/余额</span>
+            <strong id="balance">--</strong>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button type="button" data-command="start" class="primary">启动交易</button>
+          <button type="button" data-command="stop" class="danger">停止交易</button>
+          <button type="button" data-command="pause">暂停入场</button>
+          <button type="button" data-command="reload_config">重载配置</button>
+        </div>
+
+        <h2 style="margin-top: 24px;">打开交易</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>交易对</th>
+                <th>方向</th>
+                <th>开仓价</th>
+                <th>当前收益</th>
+                <th>开仓时间</th>
+              </tr>
+            </thead>
+            <tbody id="trades-body">
+              <tr><td colspan="5" class="muted">登录后显示数据。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const API = "/api/v1";
+    const tokenKey = "freqtrade.zh.access_token";
+    const refreshKey = "freqtrade.zh.refresh_token";
+
+    const $ = (id) => document.getElementById(id);
+
+    function setMessage(text, isError = false) {
+      $("message").textContent = text;
+      $("message").className = isError ? "error" : "muted";
+    }
+
+    function setHealth(ok, text) {
+      $("health-dot").classList.toggle("ok", ok);
+      $("health-text").textContent = text;
+    }
+
+    function authHeaders() {
+      const token = localStorage.getItem(tokenKey);
+      return token ? { Authorization: `Bearer ${token}` } : {};
+    }
+
+    async function request(path, options = {}) {
+      const response = await fetch(`${API}${path}`, {
+        ...options,
+        headers: {
+          "Content-Type": "application/json",
+          ...authHeaders(),
+          ...(options.headers || {}),
+        },
+      });
+
+      if (response.status === 401 && localStorage.getItem(refreshKey)) {
+        const refreshed = await refreshToken();
+        if (refreshed) {
+          return request(path, options);
+        }
+      }
+
+      if (!response.ok) {
+        let detail = response.statusText;
+        try {
+          const body = await response.json();
+          detail = body.detail || body.error || detail;
+        } catch (_error) {
+          // Keep the HTTP status text when the response is not JSON.
+        }
+        throw new Error(detail);
+      }
+
+      return response.json();
+    }
+
+    async function refreshToken() {
+      const refreshTokenValue = localStorage.getItem(refreshKey);
+      if (!refreshTokenValue) {
+        return false;
+      }
+
+      const response = await fetch(`${API}/token/refresh`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${refreshTokenValue}` },
+      });
+
+      if (!response.ok) {
+        localStorage.removeItem(tokenKey);
+        localStorage.removeItem(refreshKey);
+        return false;
+      }
+
+      const body = await response.json();
+      localStorage.setItem(tokenKey, body.access_token);
+      return true;
+    }
+
+    function formatValue(value, fallback = "--") {
+      return value === undefined || value === null || value === "" ? fallback : String(value);
+    }
+
+    function escapeHtml(value) {
+      return formatValue(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function pickProfit(profit) {
+      return (
+        profit?.profit_all_fiat ||
+        profit?.profit_all_coin ||
+        profit?.profit_closed_coin ||
+        profit?.profit_closed_percent_mean ||
+        "--"
+      );
+    }
+
+    function pickBalance(balance) {
+      return (
+        balance?.total ||
+        balance?.value ||
+        balance?.currencies?.length ||
+        balance?.starting_capital ||
+        "--"
+      );
+    }
+
+    function renderTrades(trades) {
+      const rows = Array.isArray(trades) ? trades : trades?.trades || [];
+      $("open-count").textContent = rows.length;
+
+      if (!rows.length) {
+        $("trades-body").innerHTML = '<tr><td colspan="5" class="muted">暂无打开交易。</td></tr>';
+        return;
+      }
+
+      $("trades-body").innerHTML = rows
+        .slice(0, 20)
+        .map((trade) => {
+          const direction = trade.trade_direction || trade.direction || (trade.is_short ? "空" : "多");
+          return `
+            <tr>
+              <td>${escapeHtml(trade.pair)}</td>
+              <td>${escapeHtml(direction)}</td>
+              <td>${escapeHtml(trade.open_rate)}</td>
+              <td>${escapeHtml(trade.profit_ratio ?? trade.profit_pct ?? trade.profit_abs)}</td>
+              <td>${escapeHtml(trade.open_date || trade.open_timestamp)}</td>
+            </tr>
+          `;
+        })
+        .join("");
+    }
+
+    async function loadDashboard() {
+      setMessage("正在加载数据...");
+
+      const [config, version, profit, balance, status] = await Promise.allSettled([
+        request("/show_config"),
+        request("/version"),
+        request("/profit"),
+        request("/balance"),
+        request("/status"),
+      ]);
+
+      if (config.status === "fulfilled") {
+        $("bot-state").textContent = formatValue(config.value.state || config.value.runmode);
+        $("strategy").textContent = formatValue(config.value.strategy);
+      }
+
+      if (version.status === "fulfilled") {
+        $("version").textContent = formatValue(version.value.version);
+      }
+
+      if (profit.status === "fulfilled") {
+        $("profit").textContent = formatValue(pickProfit(profit.value));
+      }
+
+      if (balance.status === "fulfilled") {
+        $("balance").textContent = formatValue(pickBalance(balance.value));
+      }
+
+      if (status.status === "fulfilled") {
+        renderTrades(status.value);
+      } else {
+        $("trades-body").innerHTML =
+          '<tr><td colspan="5" class="muted">当前模式暂不提供交易列表。</td></tr>';
+      }
+
+      setHealth(true, "已连接");
+      setMessage("数据已更新。");
+    }
+
+    async function login(event) {
+      event.preventDefault();
+      setMessage("正在登录...");
+
+      const username = $("username").value;
+      const password = $("password").value;
+      const response = await fetch(`${API}/token/login`, {
+        method: "POST",
+        headers: { Authorization: `Basic ${btoa(`${username}:${password}`)}` },
+      });
+
+      if (!response.ok) {
+        setHealth(false, "登录失败");
+        setMessage("用户名或密码不正确。", true);
+        return;
+      }
+
+      const body = await response.json();
+      localStorage.setItem(tokenKey, body.access_token);
+      localStorage.setItem(refreshKey, body.refresh_token);
+      setMessage("登录成功。");
+      await loadDashboard();
+    }
+
+    async function runCommand(command) {
+      setMessage("正在发送命令...");
+      try {
+        const result = await request(`/${command}`, { method: "POST" });
+        setMessage(result.status || result.result || "命令已发送。");
+        await loadDashboard();
+      } catch (error) {
+        setMessage(`命令失败：${error.message}`, true);
+      }
+    }
+
+    $("login-form").addEventListener("submit", login);
+    $("logout-button").addEventListener("click", () => {
+      localStorage.removeItem(tokenKey);
+      localStorage.removeItem(refreshKey);
+      setHealth(false, "已退出");
+      setMessage("已退出登录。");
+    });
+    $("refresh-button").addEventListener("click", () => {
+      loadDashboard().catch((error) => {
+        setHealth(false, "连接失败");
+        setMessage(`加载失败：${error.message}`, true);
+      });
+    });
+    document.querySelectorAll("[data-command]").forEach((button) => {
+      button.addEventListener("click", () => runCommand(button.dataset.command));
+    });
+
+    if (localStorage.getItem(tokenKey)) {
+      loadDashboard().catch((error) => {
+        setHealth(false, "连接失败");
+        setMessage(`加载失败：${error.message}`, true);
+      });
+    }
+  </script>
 </body>
 </html>

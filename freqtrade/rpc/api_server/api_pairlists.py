@@ -1,5 +1,7 @@
 import logging
 from copy import deepcopy
+from pathlib import Path
+from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends
 from fastapi.exceptions import HTTPException
@@ -23,6 +25,66 @@ logger = logging.getLogger(__name__)
 
 # Private API, protected by authentication and webserver_mode dependency
 router = APIRouter()
+
+
+def _path_in_userdir(filename: str, user_data_dir: Path) -> Path:
+    file_path = Path(filename)
+    if not file_path.is_absolute():
+        file_path = user_data_dir / file_path
+
+    file_path = file_path.resolve()
+    user_data_dir = user_data_dir.resolve()
+    if not file_path.is_relative_to(user_data_dir):
+        raise HTTPException(
+            status_code=400,
+            detail="RemotePairList file paths must stay within the user-data directory.",
+        )
+
+    return file_path
+
+
+def _validate_api_pairlists(
+    pairlists: list[dict[str, Any]], config: Config
+) -> list[dict[str, Any]]:
+    pairlists = deepcopy(pairlists)
+    user_data_dir = None
+
+    for pairlist in pairlists:
+        if pairlist.get("method") != "RemotePairList":
+            continue
+
+        if user_data_dir is None:
+            user_data_dir = Path(config["user_data_dir"])
+
+        pairlist_url = pairlist.get("pairlist_url")
+        if not pairlist_url:
+            raise HTTPException(
+                status_code=400,
+                detail="RemotePairList requires a `pairlist_url`.",
+            )
+
+        if not isinstance(pairlist_url, str) or not pairlist_url.startswith("file:///"):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "RemotePairList HTTP(S) URLs are not allowed in API pairlist evaluation."
+                ),
+            )
+
+        filename = pairlist_url.split("file:///", 1)[1]
+        pairlist_path = _path_in_userdir(filename, user_data_dir)
+        # RemotePairList strips a fixed file:/// prefix, so preserve the
+        # leading slash for absolute POSIX paths.
+        pairlist["pairlist_url"] = f"file:///{pairlist_path.as_posix()}"
+
+        save_to_file = pairlist.get("save_to_file")
+        if save_to_file:
+            raise HTTPException(
+                status_code=400,
+                detail="RemotePairList `save_to_file` is not allowed in API pairlist evaluation.",
+            )
+
+    return pairlists
 
 
 @router.get("/pairlists/available", response_model=PairListsResponse)
@@ -79,7 +141,7 @@ def pairlists_evaluate(
 
     config_loc = deepcopy(config)
     config_loc["stake_currency"] = payload.stake_currency
-    config_loc["pairlists"] = payload.pairlists
+    config_loc["pairlists"] = _validate_api_pairlists(payload.pairlists, config)
     handleExchangePayload(payload, config_loc)
     # TODO: overwrite blacklist? make it optional and fall back to the one in config?
     # Outcome depends on the UI approach.

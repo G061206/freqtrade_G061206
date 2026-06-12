@@ -167,6 +167,8 @@ def test_api_ui_fallback(botclient, mocker):
 
     rc = client_get(client, "/fallback_file.html")
     assert rc.status_code == 200
+    assert 'lang="zh-CN"' in rc.text
+    assert "Freqtrade 简体中文控制台" in rc.text
     assert "`freqtrade install-ui`" in rc.text
 
     # Forwarded to fallback_html or index.html (depending if it's installed or not)
@@ -353,6 +355,7 @@ def test_api__init__(default_conf, mocker):
                 "listen_port": 8080,
                 "username": "TestUser",
                 "password": "testPass",
+                "jwt_secret_key": _JWT_SECRET_KEY,
             }
         }
     )
@@ -418,6 +421,7 @@ def test_api_run(default_conf, mocker, caplog):
                 "listen_port": 8080,
                 "username": "TestUser",
                 "password": "testPass",
+                "jwt_secret_key": _JWT_SECRET_KEY,
             }
         }
     )
@@ -455,7 +459,7 @@ def test_api_run(default_conf, mocker, caplog):
                 "listen_ip_address": "0.0.0.0",
                 "listen_port": 8089,
                 "password": "",
-                "jwt_secret_key": "super-secret",
+                "jwt_secret_key": _JWT_SECRET_KEY,
             }
         }
     )
@@ -480,9 +484,15 @@ def test_api_run(default_conf, mocker, caplog):
         "Please make sure that this is intentional!",
         caplog,
     )
-    assert log_has_re("SECURITY WARNING - `jwt_secret_key` seems to be default.*", caplog)
 
     server_mock.reset_mock()
+    apiserver._config["api_server"]["jwt_secret_key"] = "super-secret"
+    with pytest.raises(OperationalException, match="Refusing to start API server"):
+        apiserver.start_api()
+    assert server_mock.call_count == 0
+
+    server_mock.reset_mock()
+    apiserver._config["api_server"]["jwt_secret_key"] = _JWT_SECRET_KEY
     apiserver._standalone = True
     apiserver.start_api()
     assert server_inst_mock.run_in_thread.call_count == 0
@@ -513,6 +523,7 @@ def test_api_cleanup(default_conf, mocker, caplog):
                 "listen_port": 8080,
                 "username": "TestUser",
                 "password": "testPass",
+                "jwt_secret_key": _JWT_SECRET_KEY,
             }
         }
     )
@@ -2993,6 +3004,49 @@ def test_api_pairlists_evaluate(botclient, tmp_path, mocker):
     assert call_config["exchange"]["name"] == "randomExchange"
     assert call_config["trading_mode"] == "futures"
     assert call_config["margin_mode"] == "isolated"
+
+
+@pytest.mark.parametrize(
+    "pairlist,detail",
+    [
+        (
+            {"method": "RemotePairList", "pairlist_url": "https://example.com/pairlist.json"},
+            "RemotePairList HTTP(S) URLs are not allowed in API pairlist evaluation.",
+        ),
+        (
+            {"method": "RemotePairList", "pairlist_url": "file:///../pairlist.json"},
+            "RemotePairList file paths must stay within the user-data directory.",
+        ),
+        (
+            {
+                "method": "RemotePairList",
+                "pairlist_url": "file:///pairlist.json",
+                "save_to_file": "../pairlist-out.json",
+            },
+            "RemotePairList `save_to_file` is not allowed in API pairlist evaluation.",
+        ),
+    ],
+)
+def test_api_pairlists_evaluate_rejects_unsafe_remote_pairlist(
+    botclient, tmp_path: Path, pairlist, detail
+):
+    ftbot, client = botclient
+    ftbot.config["user_data_dir"] = tmp_path
+    ftbot.config["runmode"] = RunMode.WEBSERVER
+    ApiBG.pairlist_running = False
+
+    rc = client_post(
+        client,
+        f"{BASE_URI}/pairlists/evaluate",
+        {
+            "pairlists": [pairlist],
+            "blacklist": [],
+            "stake_currency": "BTC",
+        },
+    )
+
+    assert_response(rc, 400)
+    assert rc.json()["detail"] == detail
 
 
 def test_list_available_pairs(botclient):

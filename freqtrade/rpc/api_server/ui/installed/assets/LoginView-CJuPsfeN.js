@@ -1,0 +1,2 @@
+import{Pr as e,R as t,ar as n,f as r,rr as i,vr as a}from"./index-BUJ8djHf.js";import{t as o}from"./DraggableContainer-Bq0jsQ_q.js";var s={},c={class:`max-w-xl mx-auto p-4 my-5`};function l(t,s){let l=r,u=o;return a(),i(`div`,c,[n(u,{header:`Freqtrade bot Login`,class:`px-4 py-2`},{default:e(()=>[n(l)]),_:1})])}var u=t(s,[[`render`,l]]);export{u as default};
+//# sourceMappingURL=LoginView-CJuPsfeN.js.map

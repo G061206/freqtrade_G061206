@@ -1,0 +1,2 @@
+import{Pr as e,R as t,Sr as n,ar as r,er as i,ir as a,rr as o,vr as s}from"./index-BUJ8djHf.js";var c={};function l(t,c){let l=n(`RouterLink`);return s(),o(`div`,null,[c[3]||=i(`h1`,{class:`mb-5`},`404 Error.`,-1),c[4]||=i(`p`,{class:`h4`},`Ahhhhhhhh! The page you are looking for does not exist.`,-1),i(`p`,null,[c[1]||=a(` Don't worry, you can head back to `,-1),r(l,{to:`/`},{default:e(()=>[...c[0]||=[i(`span`,null,`the main page`,-1)]]),_:1}),c[2]||=a(`. `,-1)])])}var u=t(c,[[`render`,l]]);export{u as default};
+//# sourceMappingURL=Error404View-DTElDVsr.js.map
